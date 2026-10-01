@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leiter oder Nichtleiter?</title>
+  <style>
+    :root{
+      --bg1:#0f172a;
+      --bg2:#1e293b;
+      --panel:#111827ee;
+      --text:#f8fafc;
+      --muted:#cbd5e1;
+      --green:#22c55e;
+      --green-dark:#166534;
+      --red:#ef4444;
+      --red-dark:#991b1b;
+      --card:#f8fafc;
+      --card-text:#0f172a;
+      --accent:#38bdf8;
+      --shadow:0 18px 50px rgba(0,0,0,.35);
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:Arial, Helvetica, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(56,189,248,.15), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(34,197,94,.10), transparent 30%),
+        linear-gradient(135deg,var(--bg1),var(--bg2));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      overflow-x:hidden;
+    }
+
+    .app{
+      width:min(1150px, 96vw);
+      min-height:720px;
+      background:var(--panel);
+      border:1px solid rgba(255,255,255,.09);
+      border-radius:28px;
+      box-shadow:var(--shadow);
+      padding:28px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .app::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+      background-size:34px 34px;
+      pointer-events:none;
+    }
+
+    header{
+      position:relative;
+      z-index:2;
+      text-align:center;
+      margin-bottom:18px;
+    }
+
+    h1{
+      margin:0;
+      font-size:clamp(2rem, 4vw, 3.25rem);
+      letter-spacing:.5px;
+    }
+
+    .subtitle{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:1.05rem;
+    }
+
+    .board{
+      position:relative;
+      z-index:2;
+      display:grid;
+      grid-template-columns:1fr 300px 1fr;
+      gap:24px;
+      align-items:stretch;
+      min-height:520px;
+      margin-top:20px;
+    }
+
+    .drop-zone{
+      border-radius:24px;
+      padding:20px;
+      min-height:500px;
+      display:flex;
+      flex-direction:column;
+      border:3px solid transparent;
+      transition:.2s ease;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .drop-zone h2{
+      margin:0 0 14px;
+      font-size:2rem;
+      text-align:center;
+    }
+
+    .drop-zone .hint{
+      text-align:center;
+      font-size:.95rem;
+      opacity:.9;
+      margin-bottom:14px;
+    }
+
+    .leiter{
+      background:linear-gradient(180deg, rgba(34,197,94,.23), rgba(22,101,52,.28));
+      border-color:rgba(34,197,94,.75);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+    }
+
+    .nichtleiter{
+      background:linear-gradient(180deg, rgba(239,68,68,.21), rgba(153,27,27,.28));
+      border-color:rgba(239,68,68,.75);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+    }
+
+    .drop-zone.drag-over{
+      transform:scale(1.015);
+      filter:brightness(1.1);
+      border-style:dashed;
+    }
+
+    .assigned{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      align-content:flex-start;
+      justify-content:center;
+      padding-top:12px;
+      min-height:360px;
+    }
+
+    .center{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      min-height:500px;
+      gap:18px;
+    }
+
+    .counter{
+      font-size:.9rem;
+      color:var(--muted);
+      text-align:center;
+      min-height:22px;
+    }
+
+    .card-stage{
+      width:100%;
+      min-height:190px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .material-card{
+      width:240px;
+      min-height:130px;
+      background:linear-gradient(180deg,#fff,#e2e8f0);
+      color:var(--card-text);
+      border-radius:22px;
+      border:3px solid rgba(255,255,255,.8);
+      box-shadow:0 16px 35px rgba(0,0,0,.35);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:22px;
+      text-align:center;
+      font-size:1.65rem;
+      font-weight:800;
+      cursor:grab;
+      user-select:none;
+      animation:pop .38s cubic-bezier(.2,.8,.2,1);
+      position:relative;
+    }
+
+    .material-card:active{cursor:grabbing}
+
+    .material-card.special{
+      outline:4px solid rgba(56,189,248,.28);
+    }
+
+    .material-card.special::after{
+      content:"Doppelklick";
+      position:absolute;
+      bottom:-34px;
+      background:rgba(56,189,248,.15);
+      color:#bae6fd;
+      border:1px solid rgba(56,189,248,.4);
+      border-radius:999px;
+      padding:5px 10px;
+      font-size:.75rem;
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+
+    .split-wrap{
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      justify-content:center;
+      align-items:center;
+      animation:pop .38s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .split-wrap .material-card{
+      width:130px;
+      min-height:105px;
+      font-size:1.35rem;
+      padding:16px;
+    }
+
+    .assigned-card{
+      min-width:120px;
+      max-width:190px;
+      padding:12px 15px;
+      border-radius:14px;
+      background:rgba(255,255,255,.92);
+      color:#0f172a;
+      font-weight:800;
+      text-align:center;
+      box-shadow:0 8px 18px rgba(0,0,0,.18);
+      animation:settle .28s ease;
+    }
+
+    .instructions{
+      text-align:center;
+      color:var(--muted);
+      font-size:.95rem;
+      line-height:1.45;
+      max-width:270px;
+    }
+
+    .buttons{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin-top:4px;
+    }
+
+    button{
+      border:0;
+      border-radius:12px;
+      padding:10px 14px;
+      font-weight:800;
+      cursor:pointer;
+      background:#334155;
+      color:#fff;
+      transition:.18s ease;
+    }
+
+    button:hover{transform:translateY(-1px); background:#475569}
+
+    .finish{
+      text-align:center;
+      font-size:1.5rem;
+      font-weight:900;
+      line-height:1.35;
+      color:#e2e8f0;
+      padding:22px;
+      border:2px dashed rgba(255,255,255,.22);
+      border-radius:20px;
+      animation:pop .4s ease;
+    }
+
+    .finish span{
+      display:block;
+      margin-top:10px;
+      font-size:1rem;
+      color:#cbd5e1;
+      font-weight:600;
+    }
+
+    @keyframes pop{
+      0%{opacity:0; transform:scale(.75) translateY(20px)}
+      100%{opacity:1; transform:scale(1) translateY(0)}
+    }
+
+    @keyframes settle{
+      from{opacity:0; transform:scale(.85)}
+      to{opacity:1; transform:scale(1)}
+    }
+
+    @media (max-width:900px){
+      .board{grid-template-columns:1fr; min-height:auto}
+      .center{order:-1; min-height:340px}
+      .drop-zone{min-height:300px}
+      .assigned{min-height:190px}
+      .app{padding:18px}
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>Leiter oder Nichtleiter?</h1>
+      <div class="subtitle">Ordne jeden Stoff zu. Ziehe das Kärtchen in den passenden Kasten.</div>
+    </header>
+
+    <section class="board">
+      <div class="drop-zone leiter" id="leiter" data-zone="Leiter">
+        <h2>Leiter</h2>
+        <div class="hint">Hierhin ziehen, wenn elektrischer Strom durch den Stoff fließen kann.</div>
+        <div class="assigned" id="leiterList"></div>
+      </div>
+
+      <div class="center">
+        <div class="counter" id="counter"></div>
+        <div class="card-stage" id="cardStage"></div>
+        <div class="instructions" id="instructions">
+          Ziehe das aktuelle Kärtchen in einen der beiden Kästen.
+        </div>
+        <div class="buttons">
+          <button id="resetBtn" type="button">Neu starten</button>
+        </div>
+      </div>
+
+      <div class="drop-zone nichtleiter" id="nichtleiter" data-zone="Nichtleiter">
+        <h2>Nichtleiter</h2>
+        <div class="hint">Hierhin ziehen, wenn elektrischer Strom nicht oder kaum durch den Stoff fließen kann.</div>
+        <div class="assigned" id="nichtleiterList"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const sequence = [
+      "Stahl",
+      "Papier",
+      "Kupfer",
+      "Holz",
+      "Bleistift",
+      "getrocknete Zitronenscheibe",
+      "Zitronensaft",
+      "Salzwasser",
+      "Öl"
+    ];
+
+    let index = 0;
+    let pendingSplit = null;
+    let activeDrag = null;
+
+    const cardStage = document.getElementById("cardStage");
+    const counter = document.getElementById("counter");
+    const instructions = document.getElementById("instructions");
+    const leiterList = document.getElementById("leiterList");
+    const nichtleiterList = document.getElementById("nichtleiterList");
+    const zones = document.querySelectorAll(".drop-zone");
+    const resetBtn = document.getElementById("resetBtn");
+
+    function makeCard(label, options = {}) {
+      const card = document.createElement("div");
+      card.className = "material-card" + (options.special ? " special" : "");
+      card.textContent = label;
+      card.draggable = true;
+      card.dataset.label = label;
+      if (options.splitChild) card.dataset.splitChild = "true";
+
+      card.addEventListener("dragstart", e => {
+        activeDrag = card;
+        e.dataTransfer.setData("text/plain", label);
+        e.dataTransfer.effectAllowed = "move";
+        setTimeout(() => card.style.opacity = ".45", 0);
+      });
+
+      card.addEventListener("dragend", () => {
+        card.style.opacity = "1";
+        activeDrag = null;
+        zones.forEach(z => z.classList.remove("drag-over"));
+      });
+
+      return card;
+    }
+
+    function showCurrent() {
+      cardStage.innerHTML = "";
+
+      if (index >= sequence.length) {
+        counter.textContent = "";
+        instructions.textContent = "";
+        const finish = document.createElement("div");
+        finish.className = "finish";
+        finish.innerHTML = "Alle Stoffe wurden zugeordnet.<span>Jetzt könnt ihr eure Zuordnungen gemeinsam begründen und überprüfen.</span>";
+        cardStage.appendChild(finish);
+        return;
+      }
+
+      const label = sequence[index];
+      counter.textContent = `Kärtchen ${index + 1} von ${sequence.length}`;
+
+      if (label === "Bleistift") {
+        const card = makeCard(label, {special:true});
+        card.addEventListener("dblclick", splitPencil);
+        cardStage.appendChild(card);
+        instructions.innerHTML = "Beim <strong>Bleistift</strong>: Doppelklick auf das Kärtchen, wenn ihr genauer unterscheiden möchtet.";
+      } else {
+        cardStage.appendChild(makeCard(label));
+        instructions.textContent = "Ziehe das aktuelle Kärtchen in einen der beiden Kästen.";
+      }
+    }
+
+    function splitPencil() {
+      if (sequence[index] !== "Bleistift") return;
+
+      cardStage.innerHTML = "";
+      const wrap = document.createElement("div");
+      wrap.className = "split-wrap";
+
+      const wood = makeCard("Holz", {splitChild:true});
+      const graphite = makeCard("Graphit", {splitChild:true});
+
+      wrap.appendChild(wood);
+      wrap.appendChild(graphite);
+      cardStage.appendChild(wrap);
+
+      pendingSplit = new Set(["Holz", "Graphit"]);
+      instructions.textContent = "Der Bleistift besteht aus verschiedenen Stoffen. Ordnet Holz und Graphit getrennt zu.";
+    }
+
+    function assignCard(zone, card) {
+      if (!card) return;
+
+      const label = card.dataset.label;
+      const assigned = document.createElement("div");
+      assigned.className = "assigned-card";
+      assigned.textContent = label;
+
+      const target = zone.dataset.zone === "Leiter" ? leiterList : nichtleiterList;
+      target.appendChild(assigned);
+
+      if (card.dataset.splitChild === "true" && pendingSplit) {
+        pendingSplit.delete(label);
+        card.remove();
+
+        if (pendingSplit.size === 0) {
+          pendingSplit = null;
+          index++;
+          setTimeout(showCurrent, 220);
+        }
+        return;
+      }
+
+      if (sequence[index] === "Bleistift") {
+        // Falls der Bleistift ohne Doppelklick direkt zugeordnet wird,
+        // geht die Sequenz normal weiter.
+        index++;
+        setTimeout(showCurrent, 220);
+        return;
+      }
+
+      index++;
+      setTimeout(showCurrent, 220);
+    }
+
+    zones.forEach(zone => {
+      zone.addEventListener("dragover", e => {
+        e.preventDefault();
+        zone.classList.add("drag-over");
+        e.dataTransfer.dropEffect = "move";
+      });
+
+      zone.addEventListener("dragleave", () => {
+        zone.classList.remove("drag-over");
+      });
+
+      zone.addEventListener("drop", e => {
+        e.preventDefault();
+        zone.classList.remove("drag-over");
+        assignCard(zone, activeDrag);
+      });
+    });
+
+    resetBtn.addEventListener("click", () => {
+      index = 0;
+      pendingSplit = null;
+      activeDrag = null;
+      leiterList.innerHTML = "";
+      nichtleiterList.innerHTML = "";
+      showCurrent();
+    });
+
+    showCurrent();
+  </script>
+</body>
+</html>
